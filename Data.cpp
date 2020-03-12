@@ -124,79 +124,82 @@ void Data::BestSubSetForward() {
 	std::vector<int> currFeatureSubset;
 	float currFeatureSubsetAccuracy = 0;
 
-	std::vector<int> nLengthBestSetOfIndex;
-	float nLengthBestPercentage = 0;
+	std::vector<int> nextIterOfFeatures;
+	float nextIterOfFeaturesAccuracy = 0;
 
-	std::vector<int> BestSetOfIndex;
-	float BestSetPercentage = 0;
+	std::vector<int> bestFeatureSubset;
+	float bestFeatureSubsetAccuracy = 0;
 
+	//use a set so it stays in order
 	std::set<int> remainingFeatures;
 
-	
-
+	//fill our feature vector so we can iterate over it, this will be useful because we will be removing features
+	//that we have taken so as to not run them again
 	for (unsigned i = 1; i < this->data[0].size(); i++)
 	{
 		remainingFeatures.insert(i);
 	}
+
 	//We will go through all the features, start at one to ignore the label
 	for (unsigned i = 1; i <= remainingFeatures.size(); i++)
 	{
-		//reset percentage for this feature subset
-		nLengthBestPercentage = 0;
+		//reset percentage for this new iteration of features
+		nextIterOfFeaturesAccuracy = 0;
 		//resize to fit the features we are currently going through, aka add one to size
 		currFeatureSubset.resize(i);
+		//WE HAVE TO USE AN ITERATOR
+		//this way we can iterate through the remaining features
+		//otherwise if we still use j then we will run duplicates again
 		std::set<int>::iterator it = remainingFeatures.begin();
 		for (unsigned j = 1; j < remainingFeatures.size(); j++)
 		{
-			//this check will make sure you are not repeating any features in feature subsets
-			//if we are doing feature subset 5 3 x and we iterate through and get to 5 3 5 this check will skip 
-			//that iteration because 5 is already in that feature subset
-			//std::vector<int>::iterator it = std::find(nLengthBestSetOfIndex.begin(), nLengthBestSetOfIndex.end(), j);
-			//if (it == nLengthBestSetOfIndex.end())
-			//{
-				//Now let us update our currFeatureSubset to include another feature
-			
-				currFeatureSubset[currFeatureSubset.size() - 1] = *it;
-				//find the percentage
-				currFeatureSubsetAccuracy = leaveOneOut(currFeatureSubset);
+			//Now let us update our currFeatureSubset to include another feature
+			currFeatureSubset[currFeatureSubset.size() - 1] = *it;
+			//find the percentage
+			currFeatureSubsetAccuracy = leaveOneOut(currFeatureSubset);
 
-				//print out the feature subset and accuracy as per guidelines
-				print(currFeatureSubset, currFeatureSubsetAccuracy);
-				//if our current percent is more than the percent of our prev best then set our next iteration that 
-				//we will expand on to be the curr
-				if (currFeatureSubsetAccuracy > nLengthBestPercentage)
-				{
-					nLengthBestSetOfIndex = currFeatureSubset;
-					nLengthBestPercentage = currFeatureSubsetAccuracy;
-				}
-				//if our current percent is more than our overall best accuracy that we have found so far then 
-				//set overall best set to curr
-				if (currFeatureSubsetAccuracy > BestSetPercentage)
-				{
-					BestSetPercentage = currFeatureSubsetAccuracy;
-					BestSetOfIndex = currFeatureSubset;
-				}
-			//}
-				it++;
+			//print out the feature subset and accuracy as per guidelines
+			print(currFeatureSubset, currFeatureSubsetAccuracy);
+			//if our current percent is more than the percent of our prev best then set our next iteration that 
+			//we will expand on to be the curr
+			if (currFeatureSubsetAccuracy > nextIterOfFeaturesAccuracy)
+			{
+				nextIterOfFeatures = currFeatureSubset;
+				nextIterOfFeaturesAccuracy = currFeatureSubsetAccuracy;
+			}
+			//if our current percent is more than our overall best accuracy that we have found so far then 
+			//set overall best set to curr
+			if (currFeatureSubsetAccuracy > bestFeatureSubsetAccuracy)
+			{
+				bestFeatureSubsetAccuracy = currFeatureSubsetAccuracy;
+				bestFeatureSubset = currFeatureSubset;
+			}
+			it++;
 		}
-		
-		remainingFeatures.erase(nLengthBestSetOfIndex.back());
-		currFeatureSubset = nLengthBestSetOfIndex;
+		//we want to erase the feature we have just taken so that we do not go over it again
+		//i.e if we have 5 3 then we do not want to run 5 3 3 or 5 3 5
+		remainingFeatures.erase(nextIterOfFeatures.back());
+		currFeatureSubset = nextIterOfFeatures;
+		//include this endl to distinguish between which iteration we are in
+		std::cout << std::endl;
 	}
 
 	std::cout << "Best accuracy was ";
-	print(BestSetOfIndex, BestSetPercentage);
+	print(bestFeatureSubset, bestFeatureSubsetAccuracy);
 }
 
 void Data::BestSubSetBackward()
 {
 	std::vector<int> currFeatureSubset;
 	float currFeatureSubsetAccuracy = 0;
-	std::vector<int> nLengthBestSetOfIndex;
-	float nLengthBestPercentage = 0;
-	std::vector<int> BestSetOfIndex;
-	float BestSetPercentage = 0;
-	std::vector<int> SET;
+
+	std::vector<int> nextIterOfFeatures;
+	float nextIterOfFeaturesAccuracy = 0;
+
+	std::vector<int> bestFeatureSubset;
+	float bestFeatureSubsetAccuracy = 0;
+
+	std::vector<int> remainingFeatures;
 
 	//fill our vector with all features
 	for (unsigned i = 1; i < this->data[0].size(); i++)
@@ -207,19 +210,20 @@ void Data::BestSubSetBackward()
 	//check accuracy of entire feature Set
 	currFeatureSubsetAccuracy = leaveOneOut(currFeatureSubset);
 	//set it as best to compare with all future feature subsets
-	BestSetPercentage = currFeatureSubsetAccuracy;
-	BestSetOfIndex = currFeatureSubset;
+	bestFeatureSubsetAccuracy = currFeatureSubsetAccuracy;
+	bestFeatureSubset = currFeatureSubset;
 	print(currFeatureSubset, currFeatureSubsetAccuracy);
 
-	SET = currFeatureSubset;
+	remainingFeatures = currFeatureSubset;
 	currFeatureSubset.pop_back();
 
 	bool FIRST = true;
 	while (!currFeatureSubset.empty())
 	{
 		//reset the percent of current iteration of feature subset
-		nLengthBestPercentage = 0;
-		//for the first run we technically already set the currfeatureaccuracy so no need to do again
+		nextIterOfFeaturesAccuracy = 0;
+		//for the first run we technically already set the currfeatureaccuracy so no need to do again and 
+		//definitely dont want to update the next iteration 
 		if (FIRST)
 		{
 			FIRST = false;
@@ -228,51 +232,56 @@ void Data::BestSubSetBackward()
 		{
 			currFeatureSubsetAccuracy = leaveOneOut(currFeatureSubset);
 			print(currFeatureSubset, currFeatureSubsetAccuracy);
-			if (currFeatureSubsetAccuracy > nLengthBestPercentage)
+			if (currFeatureSubsetAccuracy > nextIterOfFeaturesAccuracy)
 			{
-				nLengthBestSetOfIndex = currFeatureSubset;
-				nLengthBestPercentage = currFeatureSubsetAccuracy;
+				nextIterOfFeatures = currFeatureSubset;
+				nextIterOfFeaturesAccuracy = currFeatureSubsetAccuracy;
 			}
 
-			if (currFeatureSubsetAccuracy > BestSetPercentage)
+			if (currFeatureSubsetAccuracy > bestFeatureSubsetAccuracy)
 			{
-				BestSetPercentage = currFeatureSubsetAccuracy;
-				BestSetOfIndex = currFeatureSubset;
+				bestFeatureSubsetAccuracy = currFeatureSubsetAccuracy;
+				bestFeatureSubset = currFeatureSubset;
 			}
 		}
-
-		for (unsigned j = SET.size(); j > 1; j--)
+		//now go through all remaining features
+		for (unsigned j = remainingFeatures.size(); j > 1; j--)
 		{
-			if (j == SET.size())
+			//
+			if (j == remainingFeatures.size())
 			{
-				currFeatureSubset[SET.size() - j] = SET[j - 1];
+				std::cout << "If At pos " << remainingFeatures.size() - j << std::endl;
+				currFeatureSubset[remainingFeatures.size() - j] = remainingFeatures[j - 1];
+				std::cout << currFeatureSubset[remainingFeatures.size() - j] << std::endl;
 			}
 			else
 			{
-				currFeatureSubset[SET.size() - j] = SET[SET.size() - j - 1];
+				std::cout << "Else At pos " << remainingFeatures.size() - j << std::endl;
+				currFeatureSubset[remainingFeatures.size() - j] = remainingFeatures[remainingFeatures.size() - j - 1];
+				std::cout << currFeatureSubset[remainingFeatures.size() - j] << std::endl;
 			}
 
 			currFeatureSubsetAccuracy = leaveOneOut(currFeatureSubset);
 			print(currFeatureSubset, currFeatureSubsetAccuracy);
-			if (currFeatureSubsetAccuracy > nLengthBestPercentage)
+			if (currFeatureSubsetAccuracy > nextIterOfFeaturesAccuracy)
 			{
-				nLengthBestSetOfIndex = currFeatureSubset;
-				nLengthBestPercentage = currFeatureSubsetAccuracy;
+				nextIterOfFeatures = currFeatureSubset;
+				nextIterOfFeaturesAccuracy = currFeatureSubsetAccuracy;
 			}
 
-			if (currFeatureSubsetAccuracy > BestSetPercentage)
+			if (currFeatureSubsetAccuracy > bestFeatureSubsetAccuracy)
 			{
-				BestSetPercentage = currFeatureSubsetAccuracy;
-				BestSetOfIndex = currFeatureSubset;
+				bestFeatureSubsetAccuracy = currFeatureSubsetAccuracy;
+				bestFeatureSubset = currFeatureSubset;
 			}
 
 		}
-		currFeatureSubset = nLengthBestSetOfIndex;
-		SET = currFeatureSubset;
+		currFeatureSubset = nextIterOfFeatures;
+		remainingFeatures = currFeatureSubset;
 		currFeatureSubset.pop_back();
-
+		std::cout << std::endl;
 	}
 
 	std::cout << "Best accuracy was ";
-	print(BestSetOfIndex, BestSetPercentage);
+	print(bestFeatureSubset, bestFeatureSubsetAccuracy);
 }
